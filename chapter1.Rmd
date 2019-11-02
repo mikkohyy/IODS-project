@@ -1,4 +1,16 @@
 
 # About the project
 
-*Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you can use R Markdown syntax.*
+This is the first time I have opened **RStudio**, so I am feeling a bit confused. But I am *sure* that this enviroment will become more familiar during this course. I think that this course will be interesting since it seems to be a course where you learn by doing. Also, it is about two really contemporary subjects: open data and open science. What I expect to learn are at least the following things:
+
+* Learn more about open science
+* Learn more about open data
+* Refresh my knowledge on statistical methods
+
+I found out about this course from Weboodi when I was planning what courses I should take this semester. And um.. not much else to say. 
+
+Here's a link to my github:
+
+<https://github.com/mikkohyy/IODS-project>
+
+Here's another way of creating a [link](https://github.com/mikkohyy/IODS-project) with R Markdown.
