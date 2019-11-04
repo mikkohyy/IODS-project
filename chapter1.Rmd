@@ -8,7 +8,7 @@ This is the first time I have opened **RStudio**, so I am feeling a bit confused
 * Refresh my knowledge on statistical methods
 * Learn to use version control (or Git)
 
-I found out about this course from Weboodi when I was planning what courses I should take this semester. And um.. not much else to say. 
+I found out about this course from Weboodi when I was planning what courses I should take this semester. 
 
 Here's a link to my github:
 
