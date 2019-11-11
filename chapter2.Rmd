@@ -1,7 +1,102 @@
-# Insert chapter 2 title here
+## Chapter 2: Regression and model validation
 
-*Describe the work you have done this week and summarize your learning.*
+#### Setting up
 
-- Describe your work and results clearly. 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using.
+```{r results="hide", message=FALSE, warning=FALSE} 
+library(GGally)  
+library(ggplot2)  
+setwd("data/")  
+learning_data <- read.csv(file="learning2014.csv")  
+```
+
+#### 1
+
+```{r echo=-1} 
+learning_data <- read.csv(file="data/learning2014.csv")  
+str(learning_data)
+head(learning_data)
+
+```
+
+This is a dataset that consists of 7 variables and 166 rows - or data about 166 students. The variables could be classified to three groups: 1) background information (gender, age, attitude towards statistic), 2) the learning style of the student (deep, strategic, surface) and how well the student did on the test (points). The data was collected from students of a statistic course. 
+
+#### 2
+
+```{r echo=c(-1,-2,-3), message=FALSE, warning=FALSE, error=FALSE} 
+library(GGally)  
+library(ggplot2)
+learning_data <- read.csv(file="data/learning2014.csv")  
+ggpairs(learning_data,mapping=aes(col=gender,alpha=0.3),lower=list(combo=wrap("facethist",bins=20)),upper=list(continuous=wrap("cor",size=3)))  
+```
+
+```{r echo=-1} 
+learning_data <- read.csv(file="data/learning2014.csv")  
+summary(learning_data)
+```
+
+The students are quite young (median=22) and there are more females (110) than males (56). The learning style of the students have more charasteristics of "deep learning" (mean=3.68) than "surface learning" (mean=2.787). The strongest correlation that can be found is between attitude and points (0.437). Other interesting, but not that strong, correlations are deep & attitude, stra & age, stra & points, and surf & points (negative). 
+
+Surf is interesting since it has a negative correlation with various variables. But this is also quite self-evident since, for example, deep learning and surface learning are the opposites. There are also some interesting correlations with gender - e.g. with males age has a negative correlation with points. 
+
+I think that the general impression is that attitude has a strong correlation with points and surface learning style correlates negatively with various variables. 
+
+#### 3
+
+I build my model on the assumption that "a good attitude" and the combination of deep and strategic learning will lead to good results in the test. Seems reasonable, right? Hence, I will use attitude, deep and stra in my model: 
+
+```{r echo=-1} 
+learning_data <- read.csv(file="data/learning2014.csv") 
+
+model <- lm(points~attitude + deep + surf, data=learning_data)
+summary(model)
+
+```
+
+From the summary of the model we can see that only attitude can be considered to be statistically highly significant (P<0.001 or ***) variable in this case. Or, in other words, there is a really low probability that this variable (in this case attitude) is not relevant in relation to the target variable. Hence, we can conclude that there is a statistical relationship between attitude and points. 
+
+Since deep and surf were not statistically significant we change our model. Our new model is simple and will only have attitude as explanatory variable: 
+
+```{r echo=-1} 
+learning_data <- read.csv(file="data/learning2014.csv") 
+
+new_model <- lm(points~attitude, data=learning_data)
+
+```
+
+#### 4
+
+```{r echo=c(-1,-2,-3)} 
+learning_data <- read.csv(file="data/learning2014.csv") 
+
+new_model <- lm(points~attitude, data=learning_data)
+summary(new_model)
+```
+
+What this model tells us is that high value on attitude seems to increase the points a student gets from a test. In other words, every point on attitude increases the points by an average of 3.53. This is quite logical since I think that scoring high on attitude implies that a student is motivated. 
+
+The multiple R-squared basically describes how well "the model fits the set of observations" (this was the definition in the [blog](https://blog.minitab.com/blog/adventures-in-statistics-2/regression-analysis-how-do-i-interpret-r-squared-and-assess-the-goodness-of-fit)). Basically, in this case, it tells that how much of the variation in the points is explained only by attitude. This model's multiple R-squared is 0.1906 which means that roughly 19% of the variation is explained by attitude. 
+
+#### 5
+
+There are some assumptions in regression models. Naturally, one of the assumptions is linearity. Other one is that errors are normally distributed. And it possible to analyze the validity of these assumptions by analyzing the residuals of the models. This is done by asking if the following assumptions are valid: 1) the errors of the model are normally distributed, 2) the size of the errors should not depend on the explanatory variables (or that errors have constant variance), and 3) the errors are not correlated. 
+
+```{r echo=c(-1,-2)} 
+learning_data <- read.csv(file="data/learning2014.csv") 
+model <- lm(points~attitude, data=learning_data)
+
+par(mfrow=c(2,2))
+plot(model,which=c(2,1,5))
+
+```
+
+**Residuals vs Fitted values**
+
+Residuals vs Fitted values makes it possible to explore if there is problems with the constant variance assumption. Since there does not seem to be any pattern in the scatter plot, there does not seem to be any problems with this assumption. 
+
+**Normal QQ-plot**
+
+Normal QQ-plot makes it possible to explore if there are problems that relate to the assumption of normal distribution of errors. It seems that "the dots fit the line" relatively well. Although there are some anomalities in the beginning and the end. But I would conclude that there is no problems with this assumption. 
+
+**Residuals vs Leverage**
+
+Residual vs Leverage makes it possible to explore if there are some observations that have a high impact on the model - e.g. if there is a value that has a very high leverage it makes the model less reliable. In my model no single value has a high leverage. Nothing "pulls" and no single value has a high leverage.
