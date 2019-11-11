@@ -43,7 +43,6 @@ surf <- rowMeans(cbind(su_lp,su_um,su_sb))
 # additude
 
 names.temp <- c("Da","Db","Dc","Dd","De","Df","Dg","Dh","Di","Dj")
-
 attitude <- rowMeans(select(learning.data,one_of(names.temp)))
 
 # Adding the variables to the data frame:
@@ -58,7 +57,6 @@ learning.data$attitude <- attitude
 keepers <- c("gender","Age","attitude","deep","stra","surf","Points")
 analysis.data <- select(learning.data,one_of(keepers))
 colnames(analysis.data)[c(2,7)] <- c("age","points")
-
 analysis.data <- filter(analysis.data, points > 0)
 
 # 4: 
