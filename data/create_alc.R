@@ -35,7 +35,7 @@ glimpse(mat_por)
   
 alc_data <- select(mat_por,one_of(join_columns))
 
-# The names of the columns that are dublicated because
+# The names of the columns that are duplicated because
 # of inner join:
 
 notjoined_columns <- colnames(student_mat)[!colnames(student_mat)
@@ -68,6 +68,6 @@ write.csv(alc_data,"part3_alc_data.csv",row.names=FALSE)
 test <- read.csv("part3_alc_data.csv")
 glimpse(test)
 
-# Cheking if alc_data and the saved file are the same
+# Checking if alc_data and the saved file are the same:
 
 head(alc_data)==head(test)
