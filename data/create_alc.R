@@ -5,7 +5,7 @@
 
 library(dplyr)
 library(ggplot2)
-setwd("IODS-project/data/")
+setwd("data/")
 
 # 3
 
@@ -63,7 +63,11 @@ alc_data <- mutate(alc_data,high_use=alc_use>2)
 glimpse(alc_data)
 write.csv(alc_data,"part3_alc_data.csv",row.names=FALSE)
 
+# Reading the saved file:
+
 test <- read.csv("part3_alc_data.csv")
 glimpse(test)
+
+# Cheking if alc_data and the saved file are the same
 
 head(alc_data)==head(test)
