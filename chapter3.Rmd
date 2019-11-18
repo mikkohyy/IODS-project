@@ -1,0 +1,278 @@
+## Chapter 3: Logistic regression
+
+```{r message=FALSE,warning=FALSE}
+library(ggplot2)
+library(dplyr)
+library(boot)
+setwd("data/")
+alc_data <- read.csv("part3_alc_data.csv")
+```
+
+#### 2
+
+```{r echo=-1} 
+alc_data <- read.csv("data/part3_alc_data.csv")
+names(alc_data)
+dim(alc_data)
+
+```
+The [data](https://archive.ics.uci.edu/ml/datasets/Student+Performance) is about students in "secondary education of two Portugese schools". In this data set there are 382 students and 35 variables. The variables describe various attributes such as information about student's home, their afterschool activities and how well they do in school. The data set was collected "using school reports and questionnaires". The ages of the students are mostly between 15 and 18 (although there are few that are slightly older).
+
+The data used in this exercise has been combined from two different data sets (first one about the performance on math and the second one Portugese language). The students who were in both of those data sets were selected for this data set. Numeric variables were combined by taking the average of the variables of different data sets - i.e. grades on this data set are the average of the grades of math and Portugese language. Hence, it can be claimed to indicate how well the student did in general 
+
+(As a side note, the data I am using (which I wrangled) is different from the data that is linked in the analysis assessment. The difference is in grades. It seems that in the data that was already wrangled the grades are the math-grades (I understood that it should be the average of math and por). So my results may be different from those that are based on the already wrangled data..)
+
+#### 3
+
+The variables I chose were: 
+
+* **G3** (final grade): I go with the very traditional assumption that if you get good grades on school (especially if you are 15-18 years old) you probably will not be one of those who are using lots of alcohol. Hence, the higher the grade, the less likely the student has a "high_use". 
+* **goout** (going out with friends): The more a student goes out with friends the more chances they have to consume alcohol. Hence the more you go out with your friends, the more likely it is that you have a "high_use". And there is also always peer-pressure.
+* **studytime** (weekly study time): If a student uses a lot of time to study, it indicates that they are taking their school/future seriously and probably will not be one of those who consume alcohol in high quantity. Other possibility is that they just do not have time to be in environments where alcohol consumption is usually done. Hence, the more time a studend spends studying, the less likely is that they have a high alcohol consumption.  
+* **internet** (Internet access at home): I though that asking does having an Internet access at home predict anything about alcohon consumption would be interesting. My hypothesis is that if you have internet at home, you do not have time for alcohol since you are playing Fortnite. 
+
+#### 4
+
+```{r echo=FALSE}
+# https://www.statmethods.net/stats/frequencies.html
+# https://dzchilds.github.io/eda-for-bio/relationships-between-two-variables.html
+# https://homerhanumat.github.io/tigerstats/xtabs.html
+# https://www.youtube.com/watch?v=xl5dZo_BSJk
+# https://towardsdatascience.com/simply-explained-logistic-regression-with-example-in-r-b919acb1d6b3
+# https://stackoverflow.com/questions/41384075/r-calculate-and-interpret-odds-ratio-in-logistic-regression
+```
+
+```{r echo=c(-1,-2)}
+library(dplyr)
+alc_data <- read.csv("data/part3_alc_data.csv")
+summary(select(alc_data,.data$G3,.data$goout,.data$studytime,.data$internet))
+```
+
+It seems that there are outgoing persons (mean 3.113) and most of them have internet at home. The grades seem to be skewed towards higher grades and the students do not seem to that exited about using their time studying (mean is 2.037).
+
+**Box and bar plots**
+
+```{r echo=c(-1),fig.show='hold',out.width="50%" }
+alc_data <- read.csv("data/part3_alc_data.csv")
+par(mar=c(4,4,0.2,0.1))
+g.g3 <- ggplot(data=alc_data,aes(x=high_use,y=G3,fill=high_use))
+g.g3 + geom_boxplot() + ylab("Final grade")
+g.going_out <- ggplot(data=alc_data,aes(x=goout,fill=high_use))
+g.going_out + geom_bar() + ylab("Going out")
+g.studytime <- ggplot(data=alc_data,aes(x=studytime,fill=high_use))
+g.studytime + geom_bar()
+g.internet <- ggplot(data=alc_data,aes(x=internet,fill=high_use))
+g.internet + geom_bar()
+```
+
+There is at least some differences in grades in relation to high_use - e.g. the median is a bit higher. From the Going out barplot we can see that when goout>3 the group that has high_use becomes much bigger than the group that does not have high_use. With the cases of internet, studytime and goout we get more insight with crosstables: 
+
+```{r echo=-1}
+alc_data <- read.csv("data/part3_alc_data.csv")
+t.internet <- table(alc_data$internet,alc_data$high_use,dnn=c("internet","high_alc"))
+addmargins(round(prop.table(t.internet)*100,1)) 
+t.studytime <- table(alc_data$studytime,alc_data$high_use,dnn=c("studytime","hich_alc"))
+addmargins(round(prop.table(t.studytime)*100,1))
+t.goout <- table(alc_data$goout,alc_data$high_use,dnn=c("goout","high_alc"))
+addmargins(round(prop.table(t.goout)*100,1))
+```
+
+When compared to my hypotheses, these explorations lead to following conclusions: 
+
+* "*The higher the grade, the less likely the student has a 'high_use'*"
+  + It seems that those who were classified to have low alcohol use had a bit more better final grades (but the spread with those who do not have high use was lager). 
+* "*The more you go out with friends, more likely it is that you will have a 'high_use'*"
+  + It seems that those who go out more probably also have a "high_use". 
+* "*If the student uses a lot of time to study they do not have time/interests to consume alcohol. Therefore, they do not probably have 'high_use'.*" 
+  + I would not say that this was dissaproved. Those who use more time studying will probably also have lowe alcohon consumption. 
+* "*If you have internet at home, you do not have time for alcohol since you are playing Fortnite*"
+  + My hypothesis seems to be wrong.
+
+#### 5
+
+```{r echo=-1}
+alc_data <- read.csv("data/part3_alc_data.csv")
+the_model <- glm(high_use~G3+goout+studytime+internet,data=alc_data, family="binomial")
+summary(the_model)
+```
+What I find surprising is that G3 (or final grade) is not significant in realtion to high_use. But goout and studytime are significant. And as I thought, having internet at home does not have any significance. From the model we can say that going out has a positive connection (i.e. increase in goout will increase the odds of high_use being true) of and studytime has a negative connection with high_use being true. G3 seems to have a really small negative connection and having internet at home has a positive connection (i.e. having a internet increases the odds of having a high_alc) - but neither of them is significant. 
+
+The difference between null deviance (465.68) and Residual deviance (399.89) basically describes how good fit the model is. In the case of this model the difference is 65.79. Which indicates that this model is not bad.
+
+**Odds ratios and confidence intervals:** 
+
+```{r echo=-1,message=FALSE}
+library(dplyr)
+oddr <- coef(the_model) %>% exp
+confinterv <- confint(the_model) %>% exp
+cbind(oddr,confinterv)
+```
+When we look at the oddr-column we see how the variables affect the odds of having high_use (in this context >1 indicates positive relationship). Goout has relatively large positive relationship - it implies that when goout increases with 1, the odds that the student has high_use increases by 2 (or puts student in 2 times greater odds of having high_use). Confidence intervals suggest that we can say that we can be fairly sure that goout has positive connection and also that studytime has a negative connection. But for example having internet at home is quite useless since its confidence interval is quite wide. 
+
+My hypothesis on internet was proved to be quite wrong if we look at the model (it has a positive connection). Another surprising thing is that G3 does not have a connection (or it has only negative 0.03) with alcohol use. Therefore, my hypothesis based on traditional thinking was false. Goout and studytime seemed to have the role that I though they would. Next question is how well my model predicts.
+
+#### 6
+
+**Graph:** 
+
+```{r echo=-1}
+alc_data <- read.csv("data/part3_alc_data.csv")
+better_model <- glm(high_use~goout+studytime,data=alc_data, family="binomial")
+probs <- predict(better_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data, prediction=probability>0.5)
+plot <- ggplot(alc_data,aes(x=probability,y=high_use,col=prediction))
+plot + geom_point()
+```
+
+**Crosstable:** 
+
+```{r echo=c(-1,-2,-3,-4,-5)}
+alc_data <- read.csv("data/part3_alc_data.csv")
+better_model <- glm(high_use~goout+studytime,data=alc_data, family="binomial")
+probs <- predict(better_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data, predictions=probability>0.5)
+pred.table <- table(high_use=alc_data$high_use,prediction=alc_data$prediction)
+addmargins(prop.table(pred.table))
+```
+**Penalty:**
+```{r echo=c(-1,-2,-3,-4,-5)}
+alc_data <- read.csv("data/part3_alc_data.csv")
+better_model <- glm(high_use~goout+studytime,data=alc_data, family="binomial")
+probs <- predict(better_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+lossf <- function(class,prob) {
+    wrong <- abs(class-prob) > 0.5
+  mean(wrong)
+}
+lossf(class=alc_data$high_use,prob=alc_data$probability)
+```
+
+This model's penalty is approximately 0.25 which means that it predicted 75% of the cases right. It seems that my model has difficulties predicting cases that have high_use. It predicted 19% of cases wrong when there was a high_use (it claimed that these cases did not have high_use). 
+
+I think that random guessing would be a straighforward and simple guessing strategy: 
+
+```{r echo=c(-1,-2,-3,-4,-5)}
+alc_data <- read.csv("data/part3_alc_data.csv")
+better_model <- glm(high_use~goout+studytime,data=alc_data, family="binomial")
+probs <- predict(better_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data, predictions=probability>0.5)
+guess <- sample(c(TRUE,FALSE),size=382,replace=TRUE)
+wrong <- alc_data$high_use==guess
+mean(wrong)
+```
+I ran this few times and the penalty was always somewhere between 0.45 and 0.55. Hence, it seems that my model predicts better than just guessing randomly. 
+
+#### 7
+
+```{r echo=c(-1:-6)}
+alc_data <- read.csv("data/part3_alc_data.csv")
+better_model <- glm(high_use~goout+studytime,data=alc_data, family="binomial")
+probs <- predict(better_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data, predictions=probability>0.5)
+lossf <- function(class,prob) {
+  wrong <- abs(class-prob) > 0.5
+  mean(wrong)
+}
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=better_model,K=10)
+crossv$delta[1]
+```
+According to crossvalidation, my model seems to be a bit better than the on in Data Camp (error of ~0.25 is slightly better than error of ~0.26 - but only slightly). 
+
+#### 8
+
+At the beginning there is a model with 10 variables. After each "round" one varible is removed until we have the same model (goout and studytime) that was build in the earlier sections. In the following example there is the code for the first round. For second round I removed traveltime and continued this until there were only two variables in the model. 
+
+```{r echo=c(-1,-2,-4,-5,-6,c(-11:-75)), result="hide"}
+alc_data <- read.csv("data/part3_alc_data.csv")
+lossf <- function(class,prob) {
+  wrong <- abs(class-prob) > 0.5
+  mean(wrong)
+}
+massive_model <-  glm(high_use~goout+studytime+Fedu+Fjob+Medu+Mjob+freetime+romantic+sex+traveltime,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results <- matrix(nrow=9,ncol=3)
+results[1,] <- c(10,penalty,crossv$delta[1])
+
+massive_model <- glm(high_use~goout+studytime+Fedu+Fjob+Medu+Mjob+freetime+romantic+sex,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results[2,] <- c(9,penalty,crossv$delta[1])
+
+massive_model <- glm(high_use~goout+studytime+Fedu+Fjob+Medu+freetime+romantic+sex,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results[3,] <- c(8,penalty,crossv$delta[1])
+
+massive_model <- glm(high_use~goout+studytime+Fedu+Medu+freetime+romantic+sex,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results[4,] <- c(7,penalty,crossv$delta[1])
+
+massive_model <- glm(high_use~goout+studytime+Fedu+freetime+romantic+sex,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results[5,] <- c(6,penalty,crossv$delta[1])
+
+massive_model <- glm(high_use~goout+studytime+freetime+romantic+sex,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results[6,] <- c(5,penalty,crossv$delta[1])
+
+massive_model <- glm(high_use~goout+studytime+romantic+sex,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results[7,] <- c(4,penalty,crossv$delta[1])
+
+massive_model <- glm(high_use~goout+studytime+sex,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results[8,] <- c(3,penalty,crossv$delta[1])
+
+massive_model <- glm(high_use~goout+studytime,data=alc_data, family="binomial")
+probs <- predict(massive_model, type="response")
+alc_data <- mutate(alc_data,probability=probs)
+alc_data <- mutate(alc_data,predictions=probability>0.5)
+crossv <- cv.glm(alc_data,cost=lossf,glmfit=massive_model,K=10)
+penalty <- lossf(class=alc_data$high_use,prob=alc_data$probability)
+results[9,] <- c(2,penalty,crossv$delta[1])
+
+
+# Matrix of each round:
+results
+
+results.df <- as.data.frame(results)
+ggplot(data=results.df,aes(x=V1)) + geom_line(aes(y=V2,colour="V2")) + geom_point(aes(y=V2,colour="V2")) + geom_line(aes(y=V3,colour="V3")) + geom_point(aes(y=V3,colour="V3")) + scale_x_continuous(trans = "reverse", breaks = unique(results.df$V1)) + ylab("Error") + xlab("Number of predictors")
+
+```
+
+**Red line (V2)** describes the value that was produced by the loss function. **Blue line (V3)** is the value that was produced by cv.glm. 
