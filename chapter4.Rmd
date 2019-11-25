@@ -197,4 +197,4 @@ cluster_col <- train_km$cluster
 
 plot_ly(x=matrix_product$LD1,  y=matrix_product$LD2, z=matrix_product$LD3, type="scatter3d", mode="markers", color=cluster_col,size=I(40))
 ```
-How the colors are scattered in these plots resemble each other relatively well. Based on these two plots, I would say that crime-variable seems to have relatively large role when the algorithm defines the cluster. These two plots illustrate it, since the point colors of clusters seem to be scattered quite similarly to the crime rate. 
+The way the points are scattered in these plots resemble each other relatively well. Based on these two plots, I would say that crime-variable seems to have relatively large role when the algorithm defines the cluster. These two plots illustrate it, since the point colors of clusters seem to be scattered quite similarly to the crime rate. 
