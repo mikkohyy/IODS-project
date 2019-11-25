@@ -1,0 +1,200 @@
+## Chapter 4: Clustering and classification
+
+```{r message=FALSE,warning=FALSE,chace=TRUE}
+library(MASS)
+library(GGally)  
+library(ggplot2)
+library(tidyverse)
+library(corrplot)
+data(Boston)
+```
+#### 2
+```{r}
+dim(Boston)
+str(Boston)
+```
+
+The Boston dataset is from MASS package (which is a supplementary package to a book about applied statistics). It has 506 dimensions (or observations) and 14 variables. Its content is described as "Housing Values in Suburbs of Boston". The variables are quite heterogenous. Some examples of these variables are crime rate by town, nitrogen oxides concentration and pupil-teacher ratio by town. All variables are numerical (although chas is a dummy variable). 
+
+#### 3
+
+First, let's look at the data: 
+
+```{r}
+summary(Boston)
+```
+
+These summaries tell us that the scales of these variables are quite different from each other. There are variables with max value of 8.780 (rm) and variables with max value of 711.0 (tax). Some of these variables seem to have a bit odd structure - e.g. crime rate's (crim) median is 0.25 but the maximum is ~88.98. 
+
+Then a plot that is made with ggpairs (I adjusted the theme a bit to make it more readable):
+
+```{r message=FALSE,warning=FALSE,fig.height=5,fig.width=10}
+ggpairs(Boston,upper=list(continuous=wrap("cor",size=2.2)), lower=list(continuous=wrap("points",size=0.5))) + theme(axis.text=element_text(size=5),panel.grid.major=element_blank(),axis.ticks=element_blank(),panel.border=element_rect(linetype="solid", colour="black",fill=NA),strip.text=element_text(size=7))
+```
+
+There are only few variables that are somewhat normally distributed (rm - which is the average number of rooms per dwelling). Most of the variables are skewed and/or bimodal. From the scatter plots we can see find out at least one clear (negative) correlation between median value of homes (medv) and the lower status% (stat). There are also some variables of which most of its values are in the "lower"end of the scale (e.g. crim & chas). The correlations are probably much easier to outline from a correlation matrix:
+
+```{r message=FALSE,warning=FALSE}
+cor_mtx <- round(cor(Boston),2)
+corrplot(round(cor(Boston),2),type="upper",tl.cex=0.7)
+```
+
+There are some negative correlation especially between dis (distance from Boston employment centres) - one of them is a negative correlation with age. Tax has a strong positive correlation with various variables - e.g. rad (accessibility to radial highways). But at least now it is difficult to say much about this data since there does not seem to be any clear patterns. 
+
+#### 4 
+
+Since the scales of the variables were so all over the place (and that is bad for clustering), we need to scale the data: 
+
+```{r}
+boston_sc <- scale(Boston)
+boston_sc <- as.data.frame(boston_sc) # scale -function outputs a matrix and we have to transform it into a data frame
+summary(boston_sc)
+```
+
+Scaling changed the data in a way which made the mean of all variables 0. It made also the variables to resemble each other more - for example tax's scale was from 187.0 to 771.0 and after scaling it is from -1.3127 to 1.1764. This step makes sense if we are interested about the distances between the cases that are described in this dataset. 
+
+Then we will craate a categorical variable called crime which is based on the quantiles of crim variable:
+
+```{r chace=TRUE}
+brks <- quantile(boston_sc$crim)
+lbls <- c("low","med_low","med_high","high")
+crime <- cut(boston_sc$crim,breaks=brks,label=lbls,include.lowest=TRUE)
+boston_sc$crime <- crime
+boston_sc <- boston_sc[,-1] # Remove the old crim variable
+summary(boston_sc$crime)
+```
+
+Then let's divide the data into training (80%) and testing sets (20%):
+
+```{r chace=TRUE}
+n <- nrow(boston_sc)
+ind <- sample(n, size=n*0.8)
+train_set <- boston_sc[ind,]
+test_set <- boston_sc[-ind,]
+```
+
+Now we have two sets. First, *train_set* has randomly chosen 80% cases of the Boston data. Second, *test_set* has randomly chosen 20% of cases. 
+
+#### 5
+
+First we will do a linear discriminant analysis on the training set (train_set). The categorical crime variable is the target variable and rest of the variables are used as predictors: 
+
+```{r chace=TRUE}
+boston_lda_train <- lda(crime~., data=train_set)
+boston_lda_train
+```
+Then a (bi)plot of the LDA (with colors based on the crime rate - for some reason pch=crime_as_n, did not work in this plot): 
+
+```{r chace=TRUE} 
+crime_as_n <- as.numeric(train_set$crime)
+plot(boston_lda_train,dimen=2,col=crime_as_n)
+```
+
+The end result looks a bit different if we compare it to the plot that was in data camp exercise (I do not know if this is a bad thing, and if it is a bad thing, how bad it is). 
+
+#### 6
+
+Then we will test how good the model we created works on a data that it has not seen before (test_set). First thing to do is to remove the "right answers" from the test_set (crime is the column number 14): 
+
+```{r chace=TRUE}
+correct_from_test <- test_set[,14]
+test_set <- test_set[,-14]
+```
+
+Then we will use the lda model to classify the cases (their crime rates) from the test_set and illustrate the results with a cross-table: 
+
+```{r chace=TRUE}
+boston_pred <- predict(boston_lda_train,newdata=test_set)
+addmargins(table(correct=correct_from_test,predicted=boston_pred$class))
+```
+
+It seems that this model was quite good at classifying the cases from the test_set (78/102 were classified right). Although, in the case of med_low, it only managed to get 15/29 right. The whole model managed to place the case in the right "basket of crime rate" in about 76% of the cases. I guess that this could be considered as relatively good success rate. 
+
+#### 7
+
+Re- loading and standardizing the Boston dataset: 
+
+```{r chace=TRUE}
+data(Boston)
+boston_again <- scale(Boston)
+boston_again <- as.data.frame(boston_again)
+```
+
+First we will calculate the distances between the observations. The very basic method, euclidean, is used in this calculation: 
+
+```{r chace=TRUE}
+boston_euc_dis <- dist(boston_again, method="euclidean")
+summary(boston_euc_dis)
+```
+
+For evaluating the best number of clusters I will use the function that was introduced in Data Camp exercice (max number of clusters in this evaluation is 10):
+
+```{r}
+set.seed(22)
+cluster_n <- 10
+wcss <- sapply(1:cluster_n, function(k){kmeans(boston_again,k)$tot.withinss})
+qplot(x=1:cluster_n,y=wcss,geom="line")
+```
+
+I think that the best number of clusters is 3 since the distances do not decrease much after that point. Another possible number could be 5, but when using it in a visualization, the result is quite messy. Hence, I will go with the classic approach of "less is more". Next, is the visualization of the clusters when the number of clusters is 3: 
+
+```{r}
+boston_km <- kmeans(boston_again,centers=3)
+pairs(boston_again,col=boston_km$cluster,cex=0.2)
+```
+
+It seems that the "black cluster" jumps out in each plot (of course it could also be that it is because of its color which is much more visible from the small graphs). There are three variables that seem to have (in most cases) clear clusters in them: black, crim and lstat. My interpration is that the variables black, crim and lstat have an important role in the model and classification - i.e. the clusters are heavily influenced by these variables. It also seems that the cluster that has the color black has "a strong identity" since it is clearly visible in most of the plots. Hence, it is clearly different from the other clusters. 
+
+#### Bonus
+
+```{r arrows, echo=FALSE}
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+```
+
+I will perform the k-means with four clusters (the arrow-function I use is the same that was in the Data Camp exercise):
+
+```{r ref.lable=arrows, echo=c(-1), chace=TRUE}
+library(MASS)
+data(Boston)
+set.seed(22)
+boston_again <- scale(Boston)
+boston_again <- as.data.frame(boston_again)
+boston_km <- kmeans(boston_again,centers=4)
+boston_again$cluster <- boston_km$cluster
+boston_lda <- lda(cluster~., data=boston_again)
+plot(boston_lda,dimen=2,col=boston_again$cluster)
+lda.arrows(boston_lda, myscale = 2)
+```
+
+It seems that he most influencial individual variable is black. Other variables that have a relatively strong influence are crim, indus, nox and tax. Variables black and crime seem to "pull" in their "own ways" and most of the variables are in a group that "pulls" to left. The fact that black seems to be influential confirms earlier observations (e.g. 7th part of this exercise).
+
+#### Super-bonus:
+
+```{r echo=c(-14:-16), chace=TRUE, message=FALSE,warning=FALSE} 
+model_predictors <- dplyr::select(train_set, -crime)
+# check the dimensions
+dim(model_predictors)
+dim(boston_lda_train$scaling)
+# matrix multiplication
+matrix_product <- as.matrix(model_predictors) %*% boston_lda_train$scaling
+matrix_product <- as.data.frame(matrix_product)
+
+# install.packages("plotly")
+library(plotly)
+
+plot_ly(x=matrix_product$LD1,  y=matrix_product$LD2, z=matrix_product$LD3, type="scatter3d", mode="markers", color=crime_as_n,size=I(40))
+
+# k-means of the train_set (with four centers because in the train_set there is also four clusters for crime):
+train_km <- kmeans(train_set[,-14],centers=4)
+cluster_col <- train_km$cluster
+
+plot_ly(x=matrix_product$LD1,  y=matrix_product$LD2, z=matrix_product$LD3, type="scatter3d", mode="markers", color=cluster_col,size=I(40))
+```
+How the colors are scattered in these plots resemble each other relatively well. Based on these two plots, I would say that crime-variable seems to have relatively large role when the algorithm defines the cluster. These two plots illustrate it, since the point colors of clusters seem to be scattered quite similarly to the crime rate. 
