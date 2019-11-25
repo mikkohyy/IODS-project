@@ -15,11 +15,11 @@ gender_ineq <- read.csv("http://s3.amazonaws.com/assets.datacamp.com/production/
 
 # 3: Exploring the dataset:
 
-dim(human_dev)
+names(human_dev)
 str(human_dev)
 summary(human_dev)
 
-dim(gender_ineq)
+names(gender_ineq)
 str(gender_ineq)
 summary(gender_ineq)
 
