@@ -1,6 +1,9 @@
 # Mikko Hyyryläinen
 # 25.11.2019
 # Data wrangling part 3
+# Data sources:
+# http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human_development.csv
+# http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/gender_inequality.csv
 
 library(dplyr)
 setwd("data/")
