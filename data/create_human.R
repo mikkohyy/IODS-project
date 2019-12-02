@@ -1,6 +1,6 @@
 # Mikko Hyyryläinen
 # 25.11.2019
-# Data wrangling part 4 and 5
+# Data wrangling chapters 4 and 5
 # Data sources:
 # http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/human_development.csv
 # http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/gender_inequality.csv
